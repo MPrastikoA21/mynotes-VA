@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Notes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        :root {
+            --bg-gradient-day: linear-gradient(to bottom, #87CEEB 0%, #4A90E2 100%);
+            --bg-gradient-night: linear-gradient(to bottom, #0a1128 0%, #1a237e 100%);
+            --building-color-day: #2c3e50;
+            --building-color-night: rgba(26, 35, 126, 0.8);
+            --window-color-day: #ffffff;
+            --window-color-night: #ffd700;
+            --text-color-day: #2c3e50;
+            --text-color-night: #ffffff;
+            --form-bg-day: rgba(255, 255, 255, 0.9);
+            --form-bg-night: rgba(40, 44, 52, 0.8);
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg-gradient-day);
+            color: var(--text-color-day);
+            transition: all 0.5s ease;
+        }
+
+        body.night-mode {
+            background: var(--bg-gradient-night);
+            color: var(--text-color-night);
+        }
+
+        .city-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        /* Sun/Moon */
+        .celestial {
+            position: absolute;
+            top: 50px;
+            right: 100px;
+            width: 60px;
+            height: 60px;
+            background: #ffd700;
+            border-radius: 50%;
+            box-shadow: 0 0 40px #ffd700;
+            transition: all 0.5s ease;
+        }
+
+        body.night-mode .celestial {
+            background: #ffffff;
+            box-shadow: 0 0 20px #ffffff80;
+        }
+
+        /* Clouds */
+        .cloud {
+            position: absolute;
+            background: #ffffff;
+            border-radius: 20px;
+            opacity: 0.9;
+            transition: opacity 0.5s ease;
+            animation: float 20s infinite linear;
+        }
+
+        body.night-mode .cloud {
+            opacity: 0;
+        }
+
+        @keyframes float {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(100vw); }
+        }
+
+                /* ... (previous styles remain the same until stars) ... */
+        
+        /* Updated Stars styles */
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #ffffff;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { 
+                opacity: 0;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 1;
+                transform: scale(1.5);
+            }
+        }
+
+        body.night-mode .star {
+            opacity: 1;
+            animation: twinkle 2s infinite;
+        }
+
+        /* ... (rest of the styles remain the same) ... */
+
+        /* Buildings */
+        .buildings {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 80%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .building {
+            width: 80px;
+            background: var(--building-color-day);
+            margin: 0 2px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+            transition: background 0.5s ease;
+        }
+
+        body.night-mode .building {
+            background: var(--building-color-night);
+        }
+
+        /* Windows */
+        .window {
+            position: absolute;
+            width: 10px;
+            height: 15px;
+            background: var(--window-color-day);
+            transition: background 0.5s ease;
+        }
+
+        body.night-mode .window {
+            background: var(--window-color-night);
+            animation: windowFlicker 4s infinite;
+        }
+
+        @keyframes windowFlicker {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Mode Toggle */
+        .mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: #4A90E2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+
+        .mode-toggle:hover {
+            transform: scale(1.05);
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+
+        .note-form {
+            background: var(--form-bg-day);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            transition: background 0.5s ease;
+        }
+
+        body.night-mode .note-form {
+            background: var(--form-bg-night);
+        }
+
+        .note-input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(0,0,0,0.2);
+            border-radius: 5px;
+            font-size: 16px;
+            min-height: 100px;
+            background: white;
+            color: #333;
+            resize: vertical;
+            transition: all 0.5s ease;
+        }
+
+        body.night-mode .note-input {
+            background: rgba(40, 44, 52, 0.8);
+            color: white;
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .note-input::placeholder {
+            color: #666;
+        }
+
+        body.night-mode .note-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .note-submit {
+            background: #5aee4dd3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+
+        .note-submit:hover {
+            background: #0011ff;
+        }
+
+        .notes-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .note {
+            background: var(--form-bg-day);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            transition: background 0.5s ease;
+        }
+
+        body.night-mode .note {
+            background: var(--form-bg-night);
+        }
+
+        .note-content {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .note-date {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        body.night-mode .note-date {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .note-delete:hover {
+            background: #c0392b;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .notes-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .note-edit, .note-delete {
+            background: #b74ae2;
+            color: white;
+            border: none;
+            padding: 8px 16px;  /* Mengubah padding untuk ukuran tombol */
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 14px;    /* Mengatur ukuran font */
+            min-width: 80px;    /* Menetapkan lebar minimum */
+        }
+        
+        .note-edit:hover {
+            background: #4935bd;
+        }
+        
+        .edit-input {
+            width: 100%;
+            min-height: 80px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        
+        body.night-mode .edit-input {
+            background: rgba(40, 44, 52, 0.8);
+            color: white;
+            border-color: rgba(255,255,255,0.2);
+        }
+
+    </style>
+</head>
+<body>
+    <button class="mode-toggle" onclick="toggleMode()">Switch to Night Mode</button>
+
+    <div class="city-background">
+        <div class="celestial"></div>
+        <div class="clouds"></div>
+        <div class="stars"></div>
+        <div class="buildings"></div>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="container">
+            <header class="header">
+                <h1>Notes Today</h1>
+            </header>
+
+            <form class="note-form" onsubmit="addNote(event)">
+                <textarea class="note-input" placeholder="Tulis catatan Anda di sini..." required></textarea>
+                <button type="submit" class="note-submit">Tambah Catatan</button>
+            </form>
+
+            <div class="notes-container" id="notesContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        // Generate clouds
+        const cloudsContainer = document.querySelector('.clouds');
+        for(let i = 0; i < 5; i++) {
+            const cloud = document.createElement('div');
+            cloud.className = 'cloud';
+            cloud.style.width = `${100 + Math.random() * 100}px`;
+            cloud.style.height = `${20 + Math.random() * 20}px`;
+            cloud.style.top = `${50 + Math.random() * 100}px`;
+            cloud.style.animationDelay = `${Math.random() * 20}s`;
+            cloudsContainer.appendChild(cloud);
+        }
+
+        // Generate stars
+        const starsContainer = document.querySelector('.stars');
+        for(let i = 0; i < 200; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = `${Math.random() * 100}%`;
+            star.style.top = `${Math.random() * 100}%`;
+            star.style.animation = `twinkle ${2 + Math.random() * 3}s infinite ${Math.random() * 3}s`;
+            starsContainer.appendChild(star);
+        }
+
+        // Generate buildings
+        const buildingsContainer = document.querySelector('.buildings');
+        for(let i = 0; i < 20; i++) {
+            const building = document.createElement('div');
+            building.className = 'building';
+            const height = 150 + Math.random() * 250;
+            building.style.height = `${height}px`;
+            
+            // Add windows to building
+            const windowCount = Math.floor(height / 30) * 2;
+            for(let j = 0; j < windowCount; j++) {
+                if(Math.random() > 0.3) {
+                    const window = document.createElement('div');
+                    window.className = 'window';
+                    window.style.left = `${10 + (j % 2) * 30}px`;
+                    window.style.bottom = `${20 + Math.floor(j / 2) * 30}px`;
+                    building.appendChild(window);
+                }
+            }
+            
+            buildingsContainer.appendChild(building);
+        }
+
+        // Mode toggle
+        function toggleMode() {
+            const body = document.body;
+            const button = document.querySelector('.mode-toggle');
+            body.classList.toggle('night-mode');
+            button.textContent = body.classList.contains('night-mode') ? 
+                'Switch to Day Mode' : 'Switch to Night Mode';
+            
+            // Save preference
+            localStorage.setItem('mode', body.classList.contains('night-mode') ? 'night' : 'day');
+        }
+
+        // Load saved mode preference
+        if (localStorage.getItem('mode') === 'night') {
+            document.body.classList.add('night-mode');
+            document.querySelector('.mode-toggle').textContent = 'Switch to Day Mode';
+        }
+
+        // Notes functionality
+        let notes = JSON.parse(localStorage.getItem('notes')) || [];
+
+        function addNote(event) {
+            event.preventDefault();
+            const input = document.querySelector('.note-input');
+            const noteText = input.value.trim();
+            
+            if (noteText) {
+                const note = {
+                    id: Date.now(),
+                    content: noteText,
+                    date: new Date().toLocaleString('id-ID')
+                };
+                
+                notes.unshift(note);
+                localStorage.setItem('notes', JSON.stringify(notes));
+                input.value = '';
+                renderNotes();
+            }
+        }
+
+        function deleteNote(noteId) {
+            notes = notes.filter(note => note.id !== noteId);
+            localStorage.setItem('notes', JSON.stringify(notes));
+            renderNotes();
+        }
+
+
+        let editingNoteId = null;
+
+        function editNote(noteId) {
+            editingNoteId = noteId;
+            renderNotes();
+        }
+        
+        function saveEdit(noteId) {
+            const editInput = document.querySelector('.edit-input');
+            const noteText = editInput.value.trim();
+            
+            if (noteText) {
+                const noteIndex = notes.findIndex(note => note.id === noteId);
+                if (noteIndex !== -1) {
+                    notes[noteIndex].content = noteText;
+                    notes[noteIndex].date = new Date().toLocaleString('id-ID') + ' (Updated)';
+                    localStorage.setItem('notes', JSON.stringify(notes));
+                }
+            }
+            
+            editingNoteId = null;
+            renderNotes();
+        }
+        
+        function cancelEdit() {
+            editingNoteId = null;
+            renderNotes();
+        }
+
+
+
+
+        function renderNotes() {
+            const container = document.getElementById('notesContainer');
+            container.innerHTML = notes.map(note => `
+                <div class="note">
+                    ${editingNoteId === note.id ? `
+                        <textarea class="note-input edit-input">${note.content}</textarea>
+                        <button class="note-submit" onclick="saveEdit(${note.id})">Simpan</button>
+                        <button class="note-delete" onclick="cancelEdit()">Batal</button>
+                    ` : `
+                        <div class="note-content">${note.content}</div>
+                        <div class="note-date">${note.date}</div>
+                        <div class="note-actions">
+                            <button class="note-edit" onclick="editNote(${note.id})">Edit</button>
+                            <button class="note-delete" onclick="deleteNote(${note.id})">Hapus</button>
+                        </div>
+                    `}
+                </div>
+            `).join('');
+        }
+
+        renderNotes();
+
+
+
+        
+    </script>
+</body>
+</html>
